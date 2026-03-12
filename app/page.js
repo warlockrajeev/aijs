@@ -57,14 +57,56 @@ export default function JournalPage() {
   const handleAnalyze = async () => {
     if (!text) return;
     setAnalyzing(true);
+    setAnalysis(null);
+    let fullResponse = "";
+    
     try {
-      const res = await fetch(`${API_BASE}/analyze`, {
+      const response = await fetch(`${API_BASE}/analyze-stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text })
       });
-      const data = await res.json();
-      setAnalysis(data);
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') break;
+            
+            try {
+              const { chunk: textChunk } = JSON.parse(data);
+              fullResponse += textChunk;
+              
+              // We try to show the progress. Since it's JSON, it might look messy.
+              // Let's try to extract the summary if possible, or just show the raw accumulation
+              setAnalysis({ 
+                summary: fullResponse.includes('"summary":') 
+                  ? fullResponse.split('"summary":')[1].replace(/["}\s]+$/, "").replace(/^["\s]+/, "")
+                  : "Analyzing feelings...",
+                isStreaming: true 
+              });
+            } catch (e) { /* partial json */ }
+          }
+        }
+      }
+
+      // Final attempt to parse complete JSON
+      try {
+        const cleaned = fullResponse.replace(/```json|```/g, "").trim();
+        const finalData = JSON.parse(cleaned);
+        setAnalysis(finalData);
+      } catch (err) {
+        console.error("Final parse error:", err);
+      }
     } catch (err) {
       alert("Analysis failed.");
     } finally {
@@ -138,21 +180,25 @@ export default function JournalPage() {
               </form>
 
               {analysis && (
-                <div className="analysis-results">
-                  <h3>AI Interpretation</h3>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1rem' }}>
-                    <span className="ambience-tag" style={{ background: 'var(--primary)', color: '#fff' }}>
-                      {analysis.emotion}
-                    </span>
-                  </div>
+                <div className={`analysis-results ${analysis.isStreaming ? 'streaming' : ''}`}>
+                  <h3>AI Interpretation {analysis.isStreaming && "..."}</h3>
+                  {!analysis.isStreaming && analysis.emotion && (
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1rem' }}>
+                      <span className="ambience-tag" style={{ background: 'var(--primary)', color: '#fff' }}>
+                        {analysis.emotion}
+                      </span>
+                    </div>
+                  )}
                   <p style={{ fontSize: '0.95rem', fontStyle: 'italic', color: 'var(--text-main)', marginBottom: '1rem' }}>
-                    "{analysis.summary}"
+                    {analysis.summary}
                   </p>
-                  <div className="tag-cloud">
-                    {analysis.keywords?.map(kw => (
-                      <span key={kw} className="tag">#{kw}</span>
-                    ))}
-                  </div>
+                  {!analysis.isStreaming && analysis.keywords && (
+                    <div className="tag-cloud">
+                      {analysis.keywords?.map(kw => (
+                        <span key={kw} className="tag">#{kw}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </section>

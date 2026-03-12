@@ -23,3 +23,10 @@ To handle 100k users, the architecture should evolve from a single server to:
 - **Encryption in Transit**: Use HTTPS/SSL for all communications between frontend and backend.
 - **PII Scrubbing**: Before sending text to the LLM, use regex or NLP tools to remove PII (Personally Identifiable Information) like names, phone numbers, or addresses.
 - **JWT Authentication**: Although not fully implemented in this MVP, a production system would use JWT tokens to ensure users can only access their own entries.
+
+## 5. Production Enhancements
+I have enhanced the system with production-grade security and performance layers:
+- **Security Middleware**: Using `helmet` (HSTS, CSP, XSS protection), `hpp` (parameter pollution prevention), and `xss-clean`.
+- **Performance**: Enabled standard Gzip compression and multi-stage Docker builds to minimize runtime footprints.
+- **Monitoring**: Added a `/health` endpoint for readiness/liveness checks.
+- **Unified Server**: The application runs as a single Express server managing both Next.js frontend and API routes, optimizing resource usage.

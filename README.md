@@ -8,16 +8,19 @@ A full-stack journal system that helps users reflect on nature sessions using AI
 
 ## Setup Instructions
 
-### Backend
-1. `cd backend`
-2. `npm install`
-3. Create a `.env` file (one has been pre-created for you).
-4. `node server.js`
+1. `npm install`
+2. Create a `.env` file with your `MONGODB_URI` and `GEMINI_API_KEY`.
+3. `npm run dev` (for development)
 
-### Frontend
-1. `cd frontend`
-2. `npm install`
-3. `npm run dev`
+### Production Deployment
+1. Build the application: `npm run build`
+2. Start the production server: `npm start`
+
+Or use Docker (Multi-stage build):
+```bash
+docker build -t ai-journal .
+docker run -p 3000:3000 --env-file .env ai-journal
+```
 
 ## Features
 - **Journal Entries**: Save thoughts with ambience metadata.

@@ -17,7 +17,48 @@ const MODELS = [
 
 const analyzeWithModel = async (modelName, text) => {
     const model = genAI.getGenerativeModel({ model: modelName });
-    const prompt = `
+    const prompt = getPrompt(text);
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const resultText = response.text();
+    const cleanedText = resultText.replace(/```json|```/g, "").trim();
+    return JSON.parse(cleanedText);
+};
+
+const analyzeJournalText = async (text) => {
+    let lastError = null;
+    for (const modelName of MODELS) {
+        try {
+            console.log(`Attempting analysis with model: ${modelName}`);
+            const result = await analyzeWithModel(modelName, text);
+            return result;
+        } catch (error) {
+            console.error(`Error with model ${modelName}:`, error.message);
+            lastError = error;
+            continue;
+        }
+    }
+    throw new Error(`All Gemini models failed. Last error: ${lastError?.message}`);
+};
+
+const analyzeJournalTextStream = async (text, onChunk) => {
+    const modelName = MODELS[0]; 
+    try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const prompt = getPrompt(text) + "\nNote: Stream the response. Ensure valid JSON structure even in chunks if possible, or just stream the raw text if necessary.";
+        // Note: Gemini streams can be tricky with partial JSON. 
+        // For a true "ChatGPT" feel, we might just stream the summary part or the whole thing and parse carefully.
+        const result = await model.generateContentStream(prompt);
+        for await (const chunk of result.stream) {
+            onChunk(chunk.text());
+        }
+    } catch (error) {
+        console.error(`Streaming error:`, error.message);
+        throw error;
+    }
+};
+
+const getPrompt = (text) => `
 You are an AI that analyzes personal journal entries and explains the user's emotional state.
 
 Your task is to interpret the feelings behind the journal entry, not repeat the sentence.
@@ -46,29 +87,5 @@ Example output:
 Journal entry:
 "${text}"
 `;
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const resultText = response.text();
-    const cleanedText = resultText.replace(/```json|```/g, "").trim();
-    return JSON.parse(cleanedText);
-};
 
-const analyzeJournalText = async (text) => {
-    let lastError = null;
-    
-    for (const modelName of MODELS) {
-        try {
-            console.log(`Attempting analysis with model: ${modelName}`);
-            const result = await analyzeWithModel(modelName, text);
-            return result;
-        } catch (error) {
-            console.error(`Error with model ${modelName}:`, error.message);
-            lastError = error;
-            continue; // Try next model
-        }
-    }
-    
-    throw new Error(`All Gemini models failed. Last error: ${lastError?.message}`);
-};
-
-module.exports = { analyzeJournalText };
+module.exports = { analyzeJournalText, analyzeJournalTextStream };

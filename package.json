@@ -11,15 +11,20 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "axios": "^1.13.6",
+    "compression": "^1.8.1",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.1",
+    "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
     "mongoose": "^9.3.0",
-    "node-cache": "^5.1.2",
+    "morgan": "^1.10.1",
     "next": "16.1.6",
+    "node-cache": "^5.1.2",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "xss-clean": "^0.1.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

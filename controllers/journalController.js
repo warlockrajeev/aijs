@@ -1,5 +1,5 @@
 const JournalEntry = require('../models/JournalEntry');
-const { analyzeJournalText } = require('../utils/gemini');
+const { analyzeJournalText, analyzeJournalTextStream } = require('../utils/gemini');
 const NodeCache = require('node-cache');
 const analysisCache = new NodeCache({ stdTTL: 3600 }); // Cache for 1 hour
 
@@ -101,5 +101,27 @@ exports.getInsights = async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+};
+// POST /api/journal/analyze-stream - Streamed analysis
+exports.analyzeTextStream = async (req, res) => {
+    try {
+        const { text } = req.body;
+        if (!text) return res.status(400).json({ error: "Text is required" });
+
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        await analyzeJournalTextStream(text, (chunk) => {
+            res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+        });
+
+        res.write('data: [DONE]\n\n');
+        res.end();
+    } catch (error) {
+        console.error("Streaming API Error:", error);
+        res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+        res.end();
     }
 };
