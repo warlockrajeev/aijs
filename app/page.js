@@ -33,6 +33,8 @@ export default function JournalPage() {
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
 
+  const [expandedEntryId, setExpandedEntryId] = useState(null);
+
   useEffect(() => {
     fetchEntries();
     fetchInsights();
@@ -52,6 +54,10 @@ export default function JournalPage() {
       const data = await res.json();
       setInsights(data);
     } catch (err) { console.error(err); }
+  };
+
+  const toggleEntry = (id) => {
+    setExpandedEntryId(prev => prev === id ? null : id);
   };
 
   const handleAnalyze = async () => {
@@ -210,19 +216,43 @@ export default function JournalPage() {
                   <p>Your journal is empty. Take a moment to reflect.</p>
                 </div>
               )}
-              {entries.map(entry => (
-                <div key={entry._id} className="entry-card" data-card-ambience={entry.ambience}>
-                  <div className="entry-header">
-                    <span>{new Date(entry.createdAt).toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric' })}</span>
-                    <span className="ambience-tag">{entry.ambience}</span>
+              {entries.map(entry => {
+                const isExpanded = expandedEntryId === entry._id;
+                return (
+                  <div 
+                    key={entry._id} 
+                    className="entry-card" 
+                    data-card-ambience={entry.ambience}
+                    onClick={() => toggleEntry(entry._id)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className="entry-header">
+                      <span>{new Date(entry.createdAt).toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric' })}</span>
+                      <span className="ambience-tag">{entry.ambience}</span>
+                    </div>
+                    <p style={{ fontSize: '1.05rem', marginBottom: '1rem' }}>{entry.text}</p>
+                    
+                    {isExpanded && entry.summary && (
+                      <div style={{ 
+                        marginTop: '1rem', 
+                        padding: '1.25rem', 
+                        background: 'rgba(255, 255, 255, 0.6)', 
+                        borderRadius: '12px',
+                        borderLeft: '4px solid var(--primary)',
+                        animation: 'fadeIn 0.3s ease-out'
+                      }}>
+                        <h4 style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '1px' }}>AI Interpretation</h4>
+                        <p style={{ fontSize: '0.95rem', fontStyle: 'italic', color: 'var(--text-main)', lineHeight: '1.6' }}>{entry.summary}</p>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '0.5rem', opacity: 0.8, marginTop: '1rem' }}>
+                      <span className="tag">{entry.emotion}</span>
+                      {entry.keywords?.map(kw => <span key={kw} className="tag">#{kw}</span>)}
+                    </div>
                   </div>
-                  <p style={{ fontSize: '1.05rem', marginBottom: '1rem' }}>{entry.text}</p>
-                  <div style={{ display: 'flex', gap: '0.5rem', opacity: 0.8 }}>
-                    <span className="tag">{entry.emotion}</span>
-                    {entry.keywords?.slice(0, 2).map(kw => <span key={kw} className="tag">#{kw}</span>)}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </section>
           </div>
 
