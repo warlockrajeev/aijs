@@ -1,65 +1,237 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useEffect } from 'react';
+
+const API_BASE = "/api/journal";
+const USER_ID = "123";
+
+// Icons as SVG components for a professional look
+const Icons = {
+  Forest: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22v-5"/><path d="m5 13 7-6 7 6"/><path d="m5 18 7-6 7 6"/><path d="M12 2v5"/></svg>
+  ),
+  Ocean: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg>
+  ),
+  Mountain: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg>
+  ),
+  Analyze: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/><path d="M12 10a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg>
+  ),
+  Save: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+  )
+};
+
+export default function JournalPage() {
+  const [text, setText] = useState("");
+  const [ambience, setAmbience] = useState("forest");
+  const [entries, setEntries] = useState([]);
+  const [analysis, setAnalysis] = useState(null);
+  const [insights, setInsights] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+
+  useEffect(() => {
+    fetchEntries();
+    fetchInsights();
+  }, []);
+
+  const fetchEntries = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/${USER_ID}`);
+      const data = await res.json();
+      setEntries(data);
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchInsights = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/insights/${USER_ID}`);
+      const data = await res.json();
+      setInsights(data);
+    } catch (err) { console.error(err); }
+  };
+
+  const handleAnalyze = async () => {
+    if (!text) return;
+    setAnalyzing(true);
+    try {
+      const res = await fetch(`${API_BASE}/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      const data = await res.json();
+      setAnalysis(data);
+    } catch (err) {
+      alert("Analysis failed.");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!text) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: USER_ID, ambience, text })
+      });
+      if (res.ok) {
+        setText("");
+        setAnalysis(null);
+        fetchEntries();
+        fetchInsights();
+      }
+    } catch (err) {
+      alert("Submission failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="app-container" data-ambience={ambience}>
+      <div className="main-wrapper">
+        <header>
+          <h1>Nature Whisper</h1>
+          <p>An AI-Assisted Journey through your Inner Wilderness</p>
+        </header>
+
+        <main className="dashboard-layout">
+          <div className="left-column">
+            <section className="glass-card">
+              <h2><Icons.Save /> Capture Your Session</h2>
+              <form onSubmit={handleSubmit}>
+                <textarea 
+                  value={text} 
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder="The wind was howling through the pines, and for a moment, everything felt still..."
+                />
+                <div className="controls-group">
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <select value={ambience} onChange={(e) => setAmbience(e.target.value)}>
+                      <option value="forest">🌲 Forest Session</option>
+                      <option value="ocean">🌊 Ocean Session</option>
+                      <option value="mountain">🏔️ Mountain Session</option>
+                    </select>
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary" 
+                      onClick={handleAnalyze} 
+                      disabled={analyzing || !text}
+                    >
+                      {analyzing ? <div className="loading-spinner" /> : <Icons.Analyze />}
+                      {analyzing ? "Exploring..." : "Analyze Mood"}
+                    </button>
+                  </div>
+                  <button type="submit" className="btn btn-primary" disabled={loading || !text}>
+                    {loading ? <div className="loading-spinner" /> : <Icons.Save />}
+                    {loading ? "Recording..." : "Save Entry"}
+                  </button>
+                </div>
+              </form>
+
+              {analysis && (
+                <div className="analysis-results">
+                  <h3>AI Interpretation</h3>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1rem' }}>
+                    <span className="ambience-tag" style={{ background: 'var(--primary)', color: '#fff' }}>
+                      {analysis.emotion}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.95rem', fontStyle: 'italic', color: 'var(--text-main)', marginBottom: '1rem' }}>
+                    "{analysis.summary}"
+                  </p>
+                  <div className="tag-cloud">
+                    {analysis.keywords?.map(kw => (
+                      <span key={kw} className="tag">#{kw}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+
+            <section style={{ marginTop: '2.5rem' }}>
+              <h2 style={{ paddingLeft: '1rem' }}>Recent Reflections</h2>
+              {entries.length === 0 && (
+                <div className="glass-card" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <p>Your journal is empty. Take a moment to reflect.</p>
+                </div>
+              )}
+              {entries.map(entry => (
+                <div key={entry._id} className="entry-card" data-card-ambience={entry.ambience}>
+                  <div className="entry-header">
+                    <span>{new Date(entry.createdAt).toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric' })}</span>
+                    <span className="ambience-tag">{entry.ambience}</span>
+                  </div>
+                  <p style={{ fontSize: '1.05rem', marginBottom: '1rem' }}>{entry.text}</p>
+                  <div style={{ display: 'flex', gap: '0.5rem', opacity: 0.8 }}>
+                    <span className="tag">{entry.emotion}</span>
+                    {entry.keywords?.slice(0, 2).map(kw => <span key={kw} className="tag">#{kw}</span>)}
+                  </div>
+                </div>
+              ))}
+            </section>
+          </div>
+
+          <aside className="right-column">
+            <div className="glass-card" style={{ position: 'sticky', top: '2rem' }}>
+              <h2>Insights Overview</h2>
+              {insights ? (
+                <div className="insights-container">
+                  <div className="stat-box">
+                    <span className="stat-label">Total Sessions</span>
+                    <span className="stat-value">{insights.totalEntries}</span>
+                  </div>
+                  <div className="stat-box">
+                    <span className="stat-label">Peak Vibe</span>
+                    <span className="stat-value" style={{ textTransform: 'capitalize' }}>
+                      {insights.topEmotion !== "None" ? insights.topEmotion : "—"}
+                    </span>
+                  </div>
+                  <div className="stat-box" style={{ gridColumn: 'span 2' }}>
+                    <span className="stat-label">Favorite Sanctuary</span>
+                    <span className="stat-value" style={{ textTransform: 'capitalize' }}>
+                      {insights.mostUsedAmbience !== "None" ? insights.mostUsedAmbience : "—"}
+                    </span>
+                  </div>
+                  <div className="stat-box" style={{ gridColumn: 'span 2' }}>
+                    <span className="stat-label">Mental Landscape</span>
+                    <div className="tag-cloud" style={{ justifyContent: 'center' }}>
+                      {insights.recentKeywords.length > 0 ? (
+                        insights.recentKeywords.map(kw => (
+                          <span key={kw} className="tag">#{kw}</span>
+                        ))
+                      ) : (
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Not enough data yet</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '2rem' }}>
+                  <div className="loading-spinner" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent', width: '30px', height: '30px', margin: '0 auto' }} />
+                </div>
+              )}
+            </div>
+          </aside>
+        </main>
+      </div>
+      <style jsx global>{`
+        [data-ambience="forest"] .entry-card[data-card-ambience="forest"] { border-left-color: #2d5a27; }
+        [data-ambience="ocean"] .entry-card[data-card-ambience="ocean"] { border-left-color: #0e7490; }
+        [data-ambience="mountain"] .entry-card[data-card-ambience="mountain"] { border-left-color: #6366f1; }
+        
+        .entry-card[data-card-ambience="forest"] { border-left-color: #2d5a27; }
+        .entry-card[data-card-ambience="ocean"] { border-left-color: #0e7490; }
+        .entry-card[data-card-ambience="mountain"] { border-left-color: #6366f1; }
+      `}</style>
     </div>
   );
 }
